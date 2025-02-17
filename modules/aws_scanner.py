@@ -14,13 +14,13 @@ class AWSScanner:
                 sg_id = sg.get("GroupId", "Unknown")
                 sg_name = sg.get("GroupName", "Unnamed")
 
-                print(f"🔍 Scanning Security Group: {sg_name} (ID: {sg_id})")
+                print(f"Scanning Security Group: {sg_name} (ID: {sg_id})")
 
                 # Check Inbound (Ingress) Rules
                 for perm in sg.get("IpPermissions", []):
                     for ip_range in perm.get("IpRanges", []):
                         if ip_range.get("CidrIp") == "0.0.0.0/0":
-                            print(f"⚠️ Found OPEN INBOUND port {perm.get('FromPort', 'ALL')} in {sg_name}")
+                            print(f"Found OPEN INBOUND port {perm.get('FromPort', 'ALL')} in {sg_name}")
                             findings.append({
                                 "SecurityGroupId": sg_id,
                                 "GroupName": sg_name,
@@ -34,7 +34,7 @@ class AWSScanner:
                 for perm in sg.get("IpPermissionsEgress", []):
                     for ip_range in perm.get("IpRanges", []):
                         if ip_range.get("CidrIp") == "0.0.0.0/0":
-                            print(f"⚠️ Found OPEN OUTBOUND port {perm.get('FromPort', 'ALL')} in {sg_name}")
+                            print(f"Found OPEN OUTBOUND port {perm.get('FromPort', 'ALL')} in {sg_name}")
                             findings.append({
                                 "SecurityGroupId": sg_id,
                                 "GroupName": sg_name,

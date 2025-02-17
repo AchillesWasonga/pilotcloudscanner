@@ -19,7 +19,7 @@ class AzureScanner:
         Scans Azure NSGs for open ports.
         """
         findings = []
-        print("🔍 Scanning Azure NSGs for open ports...")
+        print("Scanning Azure NSGs for open ports...")
 
         try:
             for nsg in self.network_client.network_security_groups.list_all():
@@ -62,7 +62,7 @@ class AzureScanner:
                                 "Public IP": ip_config.public_ip_address,
                                 "Issue": "VM has a public IP"
                             })
-                            print(f"⚠️ VM {vm.name} has public IP: {ip_config.public_ip_address}")
+                            print(f"VM {vm.name} has public IP: {ip_config.public_ip_address}")
 
             print(f"VM Scan Completed. Found {len(findings)} issues.")
         except Exception as e:
@@ -75,7 +75,7 @@ class AzureScanner:
         Scans Azure Storage Accounts for public access.
         """
         findings = []
-        print("🔍 Scanning Azure Storage Accounts for public access...")
+        print("Scanning Azure Storage Accounts for public access...")
 
         try:
             for account in self.storage_client.storage_accounts.list():
@@ -85,7 +85,7 @@ class AzureScanner:
                         "Account Name": account.name,
                         "Issue": "Public blob access enabled"
                     })
-                    print(f"⚠️ Storage Account {account.name} allows public blob access!")
+                    print(f"Storage Account {account.name} allows public blob access!")
 
             print(f"Storage Scan Completed. Found {len(findings)} issues.")
         except Exception as e:

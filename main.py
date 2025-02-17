@@ -17,19 +17,19 @@ def main():
     if args.platform == "aws":
         scanner = AWSScanner()
     elif args.platform == "azure":
-        scanner = AzureScanner("<YOUR_AZURE_SUBSCRIPTION_ID>")  # Pass subscription ID
+        scanner = AzureScanner("<YOUR_AZURE_SUBSCRIPTION_ID>")  # Subscription ID after I get an account
     else:
         print("Invalid platform selection!")
         return
 
-    print(f"🚀 Starting scan on {args.platform}...")
+    print(f"Starting scan on {args.platform}...")
     findings = scanner.scan()
 
     if not findings:
         print("No misconfigurations detected!")
         logging.info(f"No issues found on {args.platform}.")
     else:
-        print(f"⚠️ Scan complete. Found {len(findings)} issues. Generating report...")
+        print(f"Scan complete. Found {len(findings)} issues. Generating report...")
 
         # Generate report in user-specified format
         report_file = ReportGenerator.generate(findings, args.platform, args.output)

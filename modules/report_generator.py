@@ -71,7 +71,7 @@ class ReportGenerator:
         else:
             html_content += """
                 <tr>
-                    <td colspan="3">✅ No security misconfigurations detected.</td>
+                    <td colspan="3"> No security misconfigurations detected.</td>
                 </tr>
             """
 
