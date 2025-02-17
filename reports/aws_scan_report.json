@@ -1,0 +1,26 @@
+[
+    {
+        "SecurityGroupId": "sg-0df66efb6dc800b03",
+        "GroupName": "default",
+        "Direction": "Outbound",
+        "Port": "ALL",
+        "Protocol": "-1",
+        "Issue": "Unrestricted outbound traffic"
+    },
+    {
+        "SecurityGroupId": "sg-0d55bfadd0c17f05d",
+        "GroupName": "Test-SG-Open",
+        "Direction": "Inbound",
+        "Port": "ALL",
+        "Protocol": "-1",
+        "Issue": "Open port accessible to the public"
+    },
+    {
+        "SecurityGroupId": "sg-0d55bfadd0c17f05d",
+        "GroupName": "Test-SG-Open",
+        "Direction": "Outbound",
+        "Port": "ALL",
+        "Protocol": "-1",
+        "Issue": "Unrestricted outbound traffic"
+    }
+]
