@@ -6,36 +6,46 @@ class AWSScanner:
 
     def scan(self):
         findings = []
-        print("🚀 Starting AWS Security Scan...")
-        
+        print("Starting AWS Security Group Scan...")
+
         try:
-            # Fetch all security groups
             response = self.ec2.describe_security_groups()
-            print(f"🔍 Found {len(response['SecurityGroups'])} security groups.")
+            for sg in response.get("SecurityGroups", []):
+                sg_id = sg.get("GroupId", "Unknown")
+                sg_name = sg.get("GroupName", "Unnamed")
 
-            for sg in response["SecurityGroups"]:
-                print(f"⚡ Checking Security Group: {sg['GroupName']} (ID: {sg['GroupId']})")
+                print(f"🔍 Scanning Security Group: {sg_name} (ID: {sg_id})")
 
-                # Iterate over inbound rules
+                # Check Inbound (Ingress) Rules
                 for perm in sg.get("IpPermissions", []):
-                    for ip_range in perm.get("IpRanges", []):  # Iterate over ALL IP rules
-                        if ip_range["CidrIp"] == "0.0.0.0/0":  # Open to the public
-                            print(f"🚨 ALERT: Open security group detected: {sg['GroupName']} (Port: {perm.get('FromPort', 'All')})")
-
+                    for ip_range in perm.get("IpRanges", []):
+                        if ip_range.get("CidrIp") == "0.0.0.0/0":
+                            print(f"⚠️ Found OPEN INBOUND port {perm.get('FromPort', 'ALL')} in {sg_name}")
                             findings.append({
-                                "SecurityGroupId": sg["GroupId"],
-                                "GroupName": sg["GroupName"],
-                                "Port": perm.get("FromPort", "All"),
-                                "Protocol": perm.get("IpProtocol", "All"),
-                                "Issue": "Security group allows unrestricted public access"
+                                "SecurityGroupId": sg_id,
+                                "GroupName": sg_name,
+                                "Direction": "Inbound",
+                                "Port": perm.get("FromPort", "ALL"),
+                                "Protocol": perm.get("IpProtocol", "ALL"),
+                                "Issue": "Open port accessible to the public"
                             })
-                            
-            if findings:
-                print(f"✅ Scan completed. Found {len(findings)} misconfigurations.")
-            else:
-                print("🎉 No security group misconfigurations detected!")
 
+                # Check Outbound (Egress) Rules
+                for perm in sg.get("IpPermissionsEgress", []):
+                    for ip_range in perm.get("IpRanges", []):
+                        if ip_range.get("CidrIp") == "0.0.0.0/0":
+                            print(f"⚠️ Found OPEN OUTBOUND port {perm.get('FromPort', 'ALL')} in {sg_name}")
+                            findings.append({
+                                "SecurityGroupId": sg_id,
+                                "GroupName": sg_name,
+                                "Direction": "Outbound",
+                                "Port": perm.get("FromPort", "ALL"),
+                                "Protocol": perm.get("IpProtocol", "ALL"),
+                                "Issue": "Unrestricted outbound traffic"
+                            })
+
+            print(f"Scan Completed. {len(findings)} issues found.")
         except Exception as e:
-            print(f"❌ Error during AWS scan: {str(e)}")
+            print(f"Error during AWS scan: {str(e)}")
 
         return findings
