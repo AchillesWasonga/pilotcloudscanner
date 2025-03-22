@@ -4,7 +4,7 @@ from modules.aws_scanner import AWSScanner
 from modules.azure_scanner import AzureScanner
 from modules.report_generator import ReportGenerator
 
-# Set up logging
+# Configure logging
 logging.basicConfig(filename="scanner.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def main():
@@ -13,27 +13,36 @@ def main():
     parser.add_argument("--output", choices=["json", "html", "csv"], default="json", help="Output report format")
     args = parser.parse_args()
 
-    # Initialize scanner based on selected platform
+    # Initialize appropriate scanner
     if args.platform == "aws":
         scanner = AWSScanner()
+
     elif args.platform == "azure":
-        scanner = AzureScanner("<YOUR_AZURE_SUBSCRIPTION_ID>")  # Subscription ID after I get an account
+        try:
+            subscription_id = input("🔑 Enter your Azure Subscription ID: ").strip()
+            if not subscription_id:
+                raise ValueError("Subscription ID cannot be empty.")
+            scanner = AzureScanner(subscription_id)
+        except Exception as e:
+            print(f"❌ Failed to initialize Azure scanner: {e}")
+            logging.error(f"Azure scanner initialization error: {e}")
+            return
+
     else:
-        print("Invalid platform selection!")
+        print("❌ Invalid platform selection!")
         return
 
-    print(f"Starting scan on {args.platform}...")
+    print(f"🚀 Starting scan on {args.platform}...")
     findings = scanner.scan()
 
     if not findings:
-        print("No misconfigurations detected!")
+        print("✅ No misconfigurations detected!")
         logging.info(f"No issues found on {args.platform}.")
     else:
-        print(f"Scan complete. Found {len(findings)} issues. Generating report...")
+        print(f"⚠️ Scan complete. Found {len(findings)} issues. Generating report...")
 
-        # Generate report in user-specified format
         report_file = ReportGenerator.generate(findings, args.platform, args.output)
-        print(f"Report generated: {report_file}")
+        print(f"📄 Report generated: {report_file}")
         logging.info(f"Report saved as {report_file}")
 
 if __name__ == "__main__":
