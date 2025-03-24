@@ -6,8 +6,8 @@ import logging
 
 class AzureScanner:
     def __init__(self, subscription_id):
-        self.subscription_id = subscription_id
         self.credential = DefaultAzureCredential()
+        self.subscription_id = subscription_id
         self.network_client = NetworkManagementClient(self.credential, subscription_id)
         self.compute_client = ComputeManagementClient(self.credential, subscription_id)
         self.storage_client = StorageManagementClient(self.credential, subscription_id)
@@ -16,50 +16,29 @@ class AzureScanner:
 
     def scan_network_security_groups(self):
         """
-        Scans NSGs attached to NICs and subnets for publicly accessible critical ports.
+        Scans Azure NSGs for inbound rules that allow traffic from the public internet.
         """
         findings = []
         print("🔍 Scanning Azure NSGs for open ports...")
 
         try:
-            # Fetch all NICs
-            for nic in self.network_client.network_interfaces.list_all():
-                nsg = nic.network_security_group
-                if not nsg:
-                    continue
+            for nsg in self.network_client.network_security_groups.list_all():
+                for rule in nsg.security_rules:
+                    if rule.access.lower() == "allow" and rule.direction.lower() == "inbound":
+                        source = (rule.source_address_prefix or "").strip().lower()
+                        if source in ["*", "0.0.0.0/0", "any", "internet"]:
+                            port = rule.destination_port_range or "Any"
+                            protocol = rule.protocol or "Any"
 
-                nsg_name = nsg.id.split("/")[-1]
-                resource_group = nic.id.split("/")[4]
-
-                # Get full NSG object
-                nsg_obj = self.network_client.network_security_groups.get(resource_group, nsg_name)
-
-                for rule in nsg_obj.security_rules:
-                    if rule.access != "Allow" or rule.direction != "Inbound":
-                        continue
-
-                    source = rule.source_address_prefix or "*"
-                    ports_to_flag = []
-
-                    if rule.destination_port_range:
-                        if rule.destination_port_range == "*" or rule.destination_port_range == "":
-                            ports_to_flag = [22, 80, 443, 3389]
-                        elif "-" in rule.destination_port_range:
-                            start, end = map(int, rule.destination_port_range.split("-"))
-                            ports_to_flag = list(range(start, end + 1))
-                        elif rule.destination_port_range.isdigit():
-                            ports_to_flag = [int(rule.destination_port_range)]
-
-                    if source in ["*", "0.0.0.0/0", "Internet"]:
-                        for port in ports_to_flag:
                             findings.append({
                                 "Type": "NSG Rule",
-                                "NSG": nsg_name,
+                                "Resource": nsg.name,
                                 "Port": port,
-                                "Protocol": rule.protocol,
-                                "Issue": f"Open inbound port {port} accessible from {source}"
+                                "Protocol": protocol,
+                                "Issue": "Inbound port open to the internet"
                             })
-                            print(f"⚠️ NSG {nsg_name} allows inbound {rule.protocol} on port {port} from {source}")
+
+                            print(f"⚠️ NSG '{nsg.name}' has {protocol} port {port} open to the public.")
 
         except Exception as e:
             logging.error(f"Error scanning NSGs: {str(e)}")
@@ -69,7 +48,7 @@ class AzureScanner:
 
     def scan_public_vms(self):
         """
-        Checks Azure VMs for public IP exposure.
+        Scans Azure VMs for public IPs.
         """
         findings = []
         print("🔍 Scanning Azure Virtual Machines for public IP exposure...")
@@ -77,22 +56,25 @@ class AzureScanner:
         try:
             for vm in self.compute_client.virtual_machines.list_all():
                 resource_group = vm.id.split("/")[4]
-                vm_name = vm.name
+                nic_refs = vm.network_profile.network_interfaces
 
-                for nic_ref in vm.network_profile.network_interfaces:
+                for nic_ref in nic_refs:
                     nic_name = nic_ref.id.split("/")[-1]
                     nic = self.network_client.network_interfaces.get(resource_group, nic_name)
 
                     for ip_config in nic.ip_configurations:
                         if ip_config.public_ip_address:
-                            public_ip = ip_config.public_ip_address.id.split("/")[-1]
+                            public_ip_id = ip_config.public_ip_address.id
+                            public_ip_name = public_ip_id.split("/")[-1]
+
                             findings.append({
                                 "Type": "Virtual Machine",
-                                "VM Name": vm_name,
-                                "Public IP": public_ip,
-                                "Issue": "VM is publicly exposed"
+                                "Resource": vm.name,
+                                "Public IP": public_ip_name,
+                                "Issue": "VM has a public IP address"
                             })
-                            print(f"⚠️ VM {vm_name} has a public IP: {public_ip}")
+
+                            print(f"⚠️ VM '{vm.name}' has a public IP: {public_ip_name}")
 
         except Exception as e:
             logging.error(f"Error scanning VMs: {str(e)}")
@@ -102,7 +84,7 @@ class AzureScanner:
 
     def scan_storage_accounts(self):
         """
-        Flags Azure Storage Accounts that allow blob public access.
+        Scans Azure Storage Accounts for public blob access.
         """
         findings = []
         print("🔍 Scanning Azure Storage Accounts for public blob access...")
@@ -112,10 +94,10 @@ class AzureScanner:
                 if account.allow_blob_public_access:
                     findings.append({
                         "Type": "Storage Account",
-                        "Account Name": account.name,
-                        "Issue": "Public blob access enabled"
+                        "Resource": account.name,
+                        "Issue": "Public blob access is enabled"
                     })
-                    print(f"⚠️ Storage Account {account.name} allows public blob access!")
+                    print(f"⚠️ Storage Account '{account.name}' allows public blob access!")
 
         except Exception as e:
             logging.error(f"Error scanning storage accounts: {str(e)}")
@@ -125,7 +107,7 @@ class AzureScanner:
 
     def scan(self):
         """
-        Orchestrates all Azure security scans.
+        Runs all Azure security scans and returns combined findings.
         """
         print("🚀 Starting Azure Security Scan...")
         nsg_findings = self.scan_network_security_groups()

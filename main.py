@@ -4,8 +4,31 @@ from modules.aws_scanner import AWSScanner
 from modules.azure_scanner import AzureScanner
 from modules.report_generator import ReportGenerator
 
-# Configure logging
-logging.basicConfig(filename="scanner.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# New import for automatic subscription detection
+from azure.identity import DefaultAzureCredential
+from azure.mgmt.resource import SubscriptionClient
+
+# Set up logging
+logging.basicConfig(
+    filename="scanner.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def get_azure_subscription_id():
+    """
+    Automatically fetch the Azure subscription ID of the logged-in user.
+    """
+    try:
+        credential = DefaultAzureCredential()
+        subscription_client = SubscriptionClient(credential)
+        subscription_id = next(subscription_client.subscriptions.list()).subscription_id
+        print(f"📡 Detected Azure Subscription ID: {subscription_id}")
+        return subscription_id
+    except Exception as e:
+        logging.error(f"Error fetching Azure Subscription ID: {e}")
+        print("❌ Could not auto-fetch Azure Subscription ID. Please check your credentials.")
+        exit(1)
 
 def main():
     parser = argparse.ArgumentParser(description="Cloud Security Misconfiguration Scanner")
@@ -13,23 +36,14 @@ def main():
     parser.add_argument("--output", choices=["json", "html", "csv"], default="json", help="Output report format")
     args = parser.parse_args()
 
-    # Initialize appropriate scanner
+    # Initialize scanner based on selected platform
     if args.platform == "aws":
         scanner = AWSScanner()
-
     elif args.platform == "azure":
-        try:
-            subscription_id = input("🔑 Enter your Azure Subscription ID: ").strip()
-            if not subscription_id:
-                raise ValueError("Subscription ID cannot be empty.")
-            scanner = AzureScanner(subscription_id)
-        except Exception as e:
-            print(f"❌ Failed to initialize Azure scanner: {e}")
-            logging.error(f"Azure scanner initialization error: {e}")
-            return
-
+        subscription_id = get_azure_subscription_id()
+        scanner = AzureScanner(subscription_id)
     else:
-        print("❌ Invalid platform selection!")
+        print("Invalid platform selection!")
         return
 
     print(f"🚀 Starting scan on {args.platform}...")
@@ -41,6 +55,7 @@ def main():
     else:
         print(f"⚠️ Scan complete. Found {len(findings)} issues. Generating report...")
 
+        # Generate report in user-specified format
         report_file = ReportGenerator.generate(findings, args.platform, args.output)
         print(f"📄 Report generated: {report_file}")
         logging.info(f"Report saved as {report_file}")
