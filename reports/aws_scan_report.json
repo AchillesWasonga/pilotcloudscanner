@@ -1,26 +1,39 @@
 [
     {
-        "SecurityGroupId": "sg-0df66efb6dc800b03",
-        "GroupName": "default",
-        "Direction": "Outbound",
-        "Port": "ALL",
+        "Type": "Security Group",
+        "Resource": "sg-0d55bfadd0c17f05d",
+        "Port": "All",
         "Protocol": "-1",
-        "Issue": "Unrestricted outbound traffic"
+        "Issue": "Open to the public on port All/-1"
     },
     {
-        "SecurityGroupId": "sg-0d55bfadd0c17f05d",
-        "GroupName": "Test-SG-Open",
-        "Direction": "Inbound",
-        "Port": "ALL",
-        "Protocol": "-1",
-        "Issue": "Open port accessible to the public"
+        "Type": "IAM Policy",
+        "Resource": "pilotcloudscanner",
+        "Issue": "Attached policy AmazonEC2ReadOnlyAccess might be overly permissive"
     },
     {
-        "SecurityGroupId": "sg-0d55bfadd0c17f05d",
-        "GroupName": "Test-SG-Open",
-        "Direction": "Outbound",
-        "Port": "ALL",
-        "Protocol": "-1",
-        "Issue": "Unrestricted outbound traffic"
+        "Type": "IAM Policy",
+        "Resource": "pilotcloudscanner",
+        "Issue": "Attached policy AmazonEC2FullAccess might be overly permissive"
+    },
+    {
+        "Type": "IAM Policy",
+        "Resource": "pilotcloudscanner",
+        "Issue": "Attached policy IAMReadOnlyAccess might be overly permissive"
+    },
+    {
+        "Type": "IAM Policy",
+        "Resource": "pilotcloudscanner",
+        "Issue": "Attached policy AWSElasticBeanstalkCustomPlatformforEC2Role might be overly permissive"
+    },
+    {
+        "Type": "IAM Policy",
+        "Resource": "pilotcloudscanner",
+        "Issue": "Attached policy IAMUserChangePassword might be overly permissive"
+    },
+    {
+        "Type": "IAM Policy",
+        "Resource": "pilotcloudscanner",
+        "Issue": "Attached policy AdministratorAccess-AWSElasticBeanstalk might be overly permissive"
     }
 ]
